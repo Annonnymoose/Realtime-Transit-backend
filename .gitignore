@@ -1,3 +1,17 @@
+# Python environment
+venv/
+__pycache__/
+*.pyc
+
+# Database
+db.sqlite3
+
+# Massive raw data files
+Data/
+
+# Environment variables (for later)
+.env
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

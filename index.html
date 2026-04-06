@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Delhi Transit Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <style>
+        /* Make the map take up the whole screen */
+        body { margin: 0; padding: 0; }
+        #map { width: 100vw; height: 100vh; }
+    </style>
+</head>
+<body>
+
+    <div id="map"></div>
+
+    <script>
+        // 2. Initialize the Map
+        // We set the starting view to Connaught Place, New Delhi with a zoom level of 14
+        var map = L.map('map').setView([28.6328, 77.2167], 14);
+
+        // 3. Load the Base Map Tiles (The actual streets and colors from OpenStreetMap)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+
+        // 4. The Magic: Fetch data from YOUR Django API
+        // We are using the spatial filter you built to only grab stops within 3km of Connaught Place!
+        // 4. The Magic: Fetch data from YOUR Django API
+        const apiUrl = 'http://127.0.0.1:8000/api/stops/?dist=3000&point=77.2167,28.6328';
+
+        fetch(apiUrl)
+            .then(response => response.json())
+            .then(data => {
+                L.geoJSON(data.results, {
+                    onEachFeature: function (feature, layer) {
+                        
+                        // 1. Set a temporary loading message for the popup
+                        layer.bindPopup(`<b>${feature.properties.stop_name}</b><br>Fetching live departures...`);
+
+                        // 2. Listen for the exact moment the user clicks this specific pin
+                        layer.on('click', function (e) {
+                            
+                            // Grab the popup we just opened
+                            const popup = e.target.getPopup();
+                            
+                            // Get the stop ID (DRF-GIS usually stores the primary key in feature.id)
+                            const stopId = feature.id; 
+
+                            // 3. Hit your custom Django endpoint!
+                            fetch(`http://127.0.0.1:8000/api/stops/${stopId}/departures/`)
+                                .then(res => res.json())
+                                .then(departures => {
+                                    
+                                    // 4. Build the HTML for the arrival board
+                                    let html = `<div style="min-width: 200px;">`;
+                                    html += `<h3 style="margin-bottom: 5px;">${feature.properties.stop_name}</h3>`;
+                                    
+                                    // Handle the case where no buses are scheduled
+                                    if (departures.length === 0) {
+                                        html += `<i>No upcoming buses scheduled for this stop.</i></div>`;
+                                        popup.setContent(html);
+                                        return;
+                                    }
+
+                                    // Build a clean table for the buses
+                                    html += `<table style="width: 100%; text-align: left; border-collapse: collapse;">
+                                                <tr style="border-bottom: 1px solid #ccc;">
+                                                    <th style="padding-bottom: 5px;">Route</th>
+                                                    <th style="padding-bottom: 5px;">Destination</th>
+                                                    <th style="padding-bottom: 5px;">Time</th>
+                                                </tr>`;
+                                    
+                                    // Loop through your JSON array and add a row for every bus
+                                    departures.forEach(bus => {
+                                        html += `<tr>
+                                                    <td style="padding-top: 5px;"><b>${bus.route_name}</b></td>
+                                                    <td style="padding-top: 5px;">${bus.head_sign}</td>
+                                                    <td style="padding-top: 5px; color: green;">${bus.arrival_time}</td>
+                                                 </tr>`;
+                                    });
+                                    
+                                    html += `</table></div>`;
+                                    
+                                    // 5. Inject the finished table into the live popup!
+                                    popup.setContent(html);
+                                })
+                                .catch(err => {
+                                    console.error("Error fetching departures:", err);
+                                    popup.setContent(`<b>${feature.properties.stop_name}</b><br><span style="color:red;">Error loading schedule.</span>`);
+                                });
+                        });
+                    }
+                }).addTo(map);
+            })
+            .catch(error => console.error('Error fetching data:', error));
+    </script>
+</body>
+</html>
