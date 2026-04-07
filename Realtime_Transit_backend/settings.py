@@ -90,7 +90,7 @@ DATABASES = {
         'NAME': "jaipur_transit_db",
         'USER': "postgres",
         'PASSWORD': 'root',
-        'HOST': 'localhost',
+        'HOST': 'db',
         'PORT': '5432',
     }
 }

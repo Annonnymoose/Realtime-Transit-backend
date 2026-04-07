@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  # 1. The Database Container
+  db:
+    # Instead of building from scratch, we use the official pre-built PostGIS image!
+    image: postgis/postgis:15-3.3
+    environment:
+      - POSTGRES_DB=jaipur_transit_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=root
+    volumes:
+      # This saves your database to your hard drive so data isn't lost when Docker shuts down
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  # 2. The Django API Container
+  web:
+    # Build this using the Dockerfile we just wrote
+    build: .
+    # Tell it to run the server on 0.0.0.0 so it is accessible outside the container
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      # This links your local code folder to the container. If you edit a file in VS Code, it instantly updates in Docker!
+      - .:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db # Tell Django to wait until the Database is running before starting
+
+volumes:
+  postgres_data:
