@@ -27,8 +27,7 @@
         }).addTo(map);
 
         // 4. The Magic: Fetch data from YOUR Django API
-        // We are using the spatial filter you built to only grab stops within 3km of Connaught Place!
-        // 4. The Magic: Fetch data from YOUR Django API
+        // using the spatial filter you built to only grab stops within 3km of Connaught Place!
         const apiUrl = 'http://127.0.0.1:8000/api/stops/?dist=3000&point=77.2167,28.6328';
 
         fetch(apiUrl)
